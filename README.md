@@ -56,7 +56,7 @@ A maioria das comunidades rurais sustentáveis possui uma riqueza imensa de conh
 
 ## 🤝 Contribuição e Propósito
 
-Este projeto faz parte de um plano de 12 meses focado em autonomia comunitária e valorização da terra. 
+Este projeto faz parte de um plano focado em autonomia comunitária e valorização da terra. 
 
 Desenvolvido com ❤️ para promover a sustentabilidade e a preservação da memória rural.
 
