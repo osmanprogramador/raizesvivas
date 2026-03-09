@@ -1,4 +1,7 @@
-/// Enum para tipos de ação no sistema
+/// Enum for audit action types
+library;
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum AuditAction {
   create('create', 'Criou'),
   update('update', 'Atualizou'),
@@ -23,14 +26,14 @@ enum AuditAction {
   }
 }
 
-/// Modelo para log de auditoria
+/// Audit Log Model
 class AuditLogModel {
   final String id;
   final String userId;
   final AuditAction action;
   final String entityType; // 'user', 'content', etc.
   final String? entityId;
-  final String? details; // JSON com detalhes da ação
+  final String? details; // JSON details
   final String? ipAddress;
   final DateTime createdAt;
 
@@ -45,7 +48,7 @@ class AuditLogModel {
     required this.createdAt,
   });
 
-  /// Convert to Map for database
+  /// Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -55,12 +58,18 @@ class AuditLogModel {
       'entity_id': entityId,
       'details': details,
       'ip_address': ipAddress,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': Timestamp.fromDate(createdAt),
     };
   }
 
-  /// Create from Map
+  /// Create from Firestore Map
   factory AuditLogModel.fromMap(Map<String, dynamic> map) {
+    DateTime toDateTime(dynamic val) {
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.parse(val);
+      return DateTime.now();
+    }
+
     return AuditLogModel(
       id: map['id'] as String,
       userId: map['user_id'] as String,
@@ -69,7 +78,7 @@ class AuditLogModel {
       entityId: map['entity_id'] as String?,
       details: map['details'] as String?,
       ipAddress: map['ip_address'] as String?,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: toDateTime(map['created_at']),
     );
   }
 

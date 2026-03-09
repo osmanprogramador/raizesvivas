@@ -22,6 +22,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _selectedCategoryFilter;
 
   @override
+  void initState() {
+    super.initState();
+    // Load contents when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ContentProvider>().loadContents();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -101,17 +110,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
           // Filter contents based on search and category
           final filteredContents = contentProvider.contents.where((content) {
-            final matchesSearch =
-                _searchQuery.isEmpty ||
+            final matchesSearch = _searchQuery.isEmpty ||
                 content.title.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
+                      _searchQuery.toLowerCase(),
+                    ) ||
                 content.description.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                );
+                      _searchQuery.toLowerCase(),
+                    );
 
-            final matchesCategory =
-                _selectedCategoryFilter == null ||
+            final matchesCategory = _selectedCategoryFilter == null ||
                 content.category == _selectedCategoryFilter;
 
             return matchesSearch && matchesCategory;
@@ -230,9 +237,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 selected: isSelected,
                                 onSelected: (selected) {
                                   setState(() {
-                                    _selectedCategoryFilter = selected
-                                        ? category
-                                        : null;
+                                    _selectedCategoryFilter =
+                                        selected ? category : null;
                                   });
                                 },
                                 selectedColor: _getCategoryColor(

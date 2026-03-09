@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
 import '../utils/validators.dart';
 import '../widgets/custom_button.dart';
@@ -21,11 +22,9 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
   final _usernameController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
 
   UserRole _selectedRole = UserRole.viewer;
   bool _isLoading = false;
-  bool _changePassword = false;
 
   bool get isEditing => widget.user != null;
 
@@ -37,8 +36,6 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
       _fullNameController.text = widget.user!.fullName;
       _emailController.text = widget.user!.email;
       _selectedRole = widget.user!.role;
-    } else {
-      _changePassword = true; // Always require password for new users
     }
   }
 
@@ -47,7 +44,6 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
     _usernameController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -60,25 +56,22 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
 
     try {
       final now = DateTime.now();
-      final uuid = const Uuid();
       final currentUser = context.read<AuthProvider>().currentUser;
 
-      String passwordHash;
-      if (isEditing && !_changePassword) {
-        passwordHash = widget.user!.passwordHash;
-      } else {
-        passwordHash = UserModel.hashPassword(_passwordController.text);
-      }
+      // For new users created by admin, we use the email as the temporary ID
+      // so it can be found when the user actually signs up.
+      // For existing users (edits), we keep the original ID (which is the UID).
+      final docId = isEditing ? widget.user!.id : _emailController.text.trim();
 
       final user = UserModel(
-        id: isEditing ? widget.user!.id : uuid.v4(),
+        id: docId,
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
         fullName: _fullNameController.text.trim(),
-        passwordHash: passwordHash,
+        phone: isEditing ? widget.user!.phone : null,
         role: _selectedRole,
         isActive: isEditing ? widget.user!.isActive : true,
-        mustChangePassword: isEditing ? widget.user!.mustChangePassword : true,
+        mustChangePassword: false, // Handled by Firebase Auth reset if needed
         createdAt: isEditing ? widget.user!.createdAt : now,
         createdBy: isEditing ? widget.user!.createdBy : currentUser?.username,
         updatedAt: now,
@@ -102,7 +95,7 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
               content: Text(
                 isEditing
                     ? 'Usuário atualizado com sucesso'
-                    : 'Usuário criado com sucesso',
+                    : 'Usuário pré-aprovado com sucesso',
               ),
               backgroundColor: const Color(AppConstants.primaryGreen),
             ),
@@ -112,7 +105,7 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Erro ao salvar usuário. Verifique se o nome de usuário ou email já existem.',
+                'Erro ao salvar usuário. Verifique se o ID/Email já existe.',
               ),
               backgroundColor: Color(AppConstants.deleteRed),
             ),
@@ -136,175 +129,177 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return Scaffold(
-      backgroundColor: const Color(AppConstants.backgroundBlack),
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        title: Text(isEditing ? 'Editar Usuário' : 'Novo Usuário'),
-        backgroundColor: const Color(AppConstants.primaryGreen),
+        title: Text(
+          isEditing ? 'Editar Usuário' : 'Novo Usuário',
+          style: TextStyle(color: themeProvider.textColor),
+        ),
+        backgroundColor: themeProvider.cardColor,
+        iconTheme: IconThemeData(color: themeProvider.textColor),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Personal Info Section
-              const Text(
-                'Informações Pessoais',
-                style: TextStyle(
-                  color: Color(AppConstants.primaryGreen),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Full Name
-              TextFormField(
-                controller: _fullNameController,
-                validator: Validators.validateFullName,
-                decoration: _buildInputDecoration(
-                  'Nome Completo *',
-                  Icons.person,
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-
-              // Account Info Section
-              const Text(
-                'Informações da Conta',
-                style: TextStyle(
-                  color: Color(AppConstants.primaryGreen),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Username
-              TextFormField(
-                controller: _usernameController,
-                validator: Validators.validateUsername,
-                decoration: _buildInputDecoration(
-                  'Nome de Usuário *',
-                  Icons.alternate_email,
-                ),
-                style: const TextStyle(color: Colors.white),
-                enabled: !isEditing, // Username cannot be changed
-              ),
-              const SizedBox(height: 16),
-
-              // Email
-              TextFormField(
-                controller: _emailController,
-                validator: Validators.validateEmail,
-                decoration: _buildInputDecoration('Email *', Icons.email),
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-
-              // Role Dropdown
-              InputDecorator(
-                decoration: _buildInputDecoration(
-                  'Função / Permissão *',
-                  Icons.security,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<UserRole>(
-                    value: _selectedRole,
-                    isDense: true,
-                    dropdownColor: const Color(AppConstants.cardDark),
-                    style: const TextStyle(color: Colors.white),
-                    items: UserRole.values.map((role) {
-                      return DropdownMenuItem(
-                        value: role,
-                        child: Text(role.displayName),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedRole = value;
-                        });
-                      }
-                    },
+      body: Center(
+        child: Container(
+          constraints: kIsWeb ? const BoxConstraints(maxWidth: 800) : null,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Personal Info Section
+                  Text(
+                    'Informações Pessoais',
+                    style: TextStyle(
+                      color: const Color(AppConstants.primaryGreen),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  // Full Name
+                  TextFormField(
+                    controller: _fullNameController,
+                    validator: Validators.validateFullName,
+                    decoration: _buildInputDecoration(
+                      'Nome Completo *',
+                      Icons.person,
+                      themeProvider,
+                    ),
+                    style: TextStyle(color: themeProvider.textColor),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Account Info Section
+                  Text(
+                    'Informações da Conta',
+                    style: TextStyle(
+                      color: const Color(AppConstants.primaryGreen),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Username
+                  TextFormField(
+                    controller: _usernameController,
+                    validator: Validators.validateUsername,
+                    decoration: _buildInputDecoration(
+                      'Nome de Usuário *',
+                      Icons.alternate_email,
+                      themeProvider,
+                    ),
+                    style: TextStyle(color: themeProvider.textColor),
+                    //enabled: !isEditing, // Allow fix if needed
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Email
+                  TextFormField(
+                    controller: _emailController,
+                    validator: Validators.validateEmail,
+                    decoration: _buildInputDecoration(
+                      'Email *',
+                      Icons.email,
+                      themeProvider,
+                    ),
+                    style: TextStyle(color: themeProvider.textColor),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone
+                  Text(
+                    'Telefone (opcional)', // TODO: Add field
+                    style: TextStyle(
+                      color: themeProvider.textSecondaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Role Selection
+                  Text(
+                    'Nível de Acesso',
+                    style: TextStyle(
+                      color: const Color(AppConstants.primaryGreen),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: themeProvider.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<UserRole>(
+                        value: _selectedRole,
+                        dropdownColor: themeProvider.cardMediumColor,
+                        style: TextStyle(color: themeProvider.textColor),
+                        icon: const Icon(Icons.arrow_drop_down,
+                            color: Color(AppConstants.primaryGreen)),
+                        items: UserRole.values.map((role) {
+                          String label = 'Visualizador';
+                          if (role == UserRole.admin) label = 'Administrador';
+                          if (role == UserRole.superAdmin) {
+                            label = 'Super Admin';
+                          }
+                          if (role == UserRole.editor) label = 'Editor';
+
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(label),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedRole = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Save Button
+                  CustomButton(
+                    text: isEditing ? 'Salvar Alterações' : 'Criar Usuário',
+                    onPressed: _handleSave,
+                    isLoading: _isLoading,
+                    icon: isEditing ? Icons.save : Icons.person_add,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-
-              // Password Section
-              if (isEditing)
-                CheckboxListTile(
-                  title: const Text(
-                    'Alterar Senha',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  value: _changePassword,
-                  onChanged: (value) {
-                    setState(() {
-                      _changePassword = value ?? false;
-                    });
-                  },
-                  activeColor: const Color(AppConstants.primaryGreen),
-                  contentPadding: EdgeInsets.zero,
-                  checkColor: Colors.white,
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-
-              if (_changePassword) ...[
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  validator: (value) {
-                    if (!_changePassword) return null;
-                    return Validators.validatePassword(value);
-                  },
-                  obscureText: true,
-                  decoration: _buildInputDecoration(
-                    isEditing ? 'Nova Senha *' : 'Senha *',
-                    Icons.lock,
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'A senha deve ter pelo menos 8 caracteres, maiúscula, minúscula e número.',
-                  style: TextStyle(
-                    color: const Color(
-                      AppConstants.textGray,
-                    ).withValues(alpha: 0.8),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              // Save Button
-              CustomButton(
-                text: isEditing ? 'Salvar Alterações' : 'Criar Usuário',
-                onPressed: _handleSave,
-                isLoading: _isLoading,
-                icon: isEditing ? Icons.save : Icons.person_add,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  InputDecoration _buildInputDecoration(
+      String label, IconData icon, ThemeProvider themeProvider) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Color(AppConstants.textGray)),
-      prefixIcon: Icon(icon, color: const Color(AppConstants.textGray)),
+      labelStyle: TextStyle(
+        color: themeProvider.textSecondaryColor,
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: themeProvider.textSecondaryColor,
+      ),
       filled: true,
-      fillColor: const Color(AppConstants.cardDark),
+      fillColor: themeProvider.cardMediumColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -314,13 +309,6 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
         borderSide: const BorderSide(
           color: Color(AppConstants.primaryGreen),
           width: 2,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: Color(AppConstants.deleteRed),
-          width: 1,
         ),
       ),
     );

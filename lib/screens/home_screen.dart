@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../providers/content_provider.dart';
 import '../utils/constants.dart';
 import 'qr_scanner_screen.dart';
 
@@ -70,7 +72,9 @@ class HomeScreen extends StatelessWidget {
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 16),
+                _buildSyncStatus(context),
+                const SizedBox(height: 32),
 
                 // Main card
                 Container(
@@ -165,6 +169,69 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSyncStatus(BuildContext context) {
+    return Consumer<ContentProvider>(
+      builder: (context, provider, _) {
+        Color color;
+        String text;
+        IconData icon;
+        bool isSpinning = false;
+
+        switch (provider.syncStatus) {
+          case SyncStatus.syncing:
+            color = const Color(AppConstants.textGray);
+            text = 'Sincronizando dados...';
+            icon = Icons.refresh;
+            isSpinning = true;
+            break;
+          case SyncStatus.synced:
+            color = const Color(AppConstants.primaryGreen);
+            text = 'Base de dados atualizada';
+            icon = Icons.check_circle_outline;
+            break;
+          case SyncStatus.error:
+            color = const Color(AppConstants.deleteRed);
+            text = 'Modo offline';
+            icon = Icons.wifi_off;
+            break;
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              isSpinning
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    )
+                  : Icon(icon, size: 14, color: color),
+              const SizedBox(width: 8),
+              Text(
+                text,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

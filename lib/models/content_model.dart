@@ -1,4 +1,6 @@
 // Content model for QR code content
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ContentModel {
   final String id;
   final String qrCodeId;
@@ -35,13 +37,20 @@ class ContentModel {
       'image_path': imagePath,
       'latitude': latitude,
       'longitude': longitude,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': Timestamp.fromDate(createdAt),
+      'updated_at': Timestamp.fromDate(updatedAt),
     };
   }
 
   // Create from Map
   factory ContentModel.fromMap(Map<String, dynamic> map) {
+    // Helper for Timestamp/String compatibility
+    DateTime toDateTime(dynamic val) {
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.parse(val);
+      return DateTime.now();
+    }
+
     return ContentModel(
       id: map['id'] as String,
       qrCodeId: map['qr_code_id'] as String,
@@ -51,8 +60,8 @@ class ContentModel {
       imagePath: map['image_path'] as String?,
       latitude: map['latitude'] as double?,
       longitude: map['longitude'] as double?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: toDateTime(map['created_at']),
+      updatedAt: toDateTime(map['updated_at']),
     );
   }
 

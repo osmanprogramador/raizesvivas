@@ -12,7 +12,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     
     <application
-        android:label="Terra Vista"
+        android:label="Raízes Vivas"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

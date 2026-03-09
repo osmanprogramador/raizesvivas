@@ -1,0 +1,9 @@
+﻿[1m[4m[96mhttps://accounts.google.com/o/oauth2/
+v2/auth?client_id=523302233293-eia5antm0tgvek240t4
+6orctktiabrek.apps.googleusercontent.com&response_
+type=code&redirect_uri=http%3A%2F%2Flocalhost%3A65
+082&scope=openid+https%3A%2F%2Fwww.googleapis.com%
+2Fauth%2Fuserinfo.email&code_challenge=tGX4vRhITHu
+uFCZKkgAhkBq8enr0THrHlvX80nxX_SU&code_challenge_me
+thod=S256&state=2Kf6mGT25SGWxK7zJZVmcuphqNQceyDb[
+0m[24m[22m

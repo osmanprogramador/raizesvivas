@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/constants.dart';
+import 'admin_web_layout.dart';
 import '../utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -44,12 +47,42 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login realizado com sucesso!'),
-            backgroundColor: Color(AppConstants.primaryGreen),
-          ),
-        );
+        // Importante: re-ler o provider para obter o estado atualizado após o login
+        final updatedAuthProvider = context.read<AuthProvider>();
+
+        // Verifica se o usuário tem permissões administrativas
+        if (updatedAuthProvider.isAdmin) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login realizado com sucesso! Redirecionando...'),
+              backgroundColor: Color(AppConstants.primaryGreen),
+              duration: Duration(seconds: 1),
+            ),
+          );
+
+          // Navegar para AdminWebLayout no web
+          if (kIsWeb && mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const AdminWebLayout(),
+              ),
+            );
+          }
+        } else {
+          // Login funcionou mas usuário não é admin
+          final user = updatedAuthProvider.currentUser;
+          final roleName = user?.roleDisplayName ?? 'desconhecido';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Login OK, mas seu perfil ($roleName) não tem acesso administrativo. '
+                'Contate o administrador.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -63,267 +96,287 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return Scaffold(
-      backgroundColor: const Color(AppConstants.backgroundBlack),
+      backgroundColor: themeProvider.backgroundColor,
       appBar: AppBar(
-        title: const Text('Login Administrativo'),
-        backgroundColor: const Color(AppConstants.primaryGreen),
+        title: Text(
+          'Login Administrativo',
+          style: TextStyle(color: themeProvider.textColor),
+        ),
+        backgroundColor: themeProvider.cardColor,
+        iconTheme: IconThemeData(color: themeProvider.textColor),
         automaticallyImplyLeading: false,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
+      body: Center(
+        child: Container(
+          constraints: kIsWeb ? const BoxConstraints(maxWidth: 500) : null,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
 
-              // Login card
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: const Color(AppConstants.cardDark),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Icon
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            AppConstants.primaryGreen,
-                          ).withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                  // Login card
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: themeProvider.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        child: const Icon(
-                          Icons.lock_person,
-                          size: 40,
-                          color: Color(AppConstants.primaryGreen),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Title
-                      const Text(
-                        'Área Administrativa',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Subtitle
-                      const Text(
-                        'Espaço restrito para cadastro de conteúdos\ne geração de QR Codes do território',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(AppConstants.textGray),
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Username field
-                      TextFormField(
-                        controller: _usernameController,
-                        validator: Validators.validateLoginInput,
-                        decoration: InputDecoration(
-                          labelText: 'Usuário ou Email',
-                          labelStyle: const TextStyle(
-                            color: Color(AppConstants.textGray),
-                          ),
-                          filled: true,
-                          fillColor: const Color(AppConstants.cardMedium),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // Icon
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                AppConstants.primaryGreen,
+                              ).withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.lock_person,
+                              size: 40,
                               color: Color(AppConstants.primaryGreen),
-                              width: 2,
                             ),
                           ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(AppConstants.deleteRed),
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 16),
+                          const SizedBox(height: 24),
 
-                      // Password field
-                      TextFormField(
-                        controller: _passwordController,
-                        validator: Validators.validateSimplePassword,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Senha',
-                          labelStyle: const TextStyle(
-                            color: Color(AppConstants.textGray),
-                          ),
-                          filled: true,
-                          fillColor: const Color(AppConstants.cardMedium),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(AppConstants.primaryGreen),
-                              width: 2,
+                          // Title
+                          Text(
+                            'Área Administrativa',
+                            style: TextStyle(
+                              color: themeProvider.textColor,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(AppConstants.deleteRed),
-                              width: 2,
-                            ),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: const Color(AppConstants.textGray),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 24),
+                          const SizedBox(height: 8),
 
-                      // Login button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(
-                              AppConstants.primaryGreen,
+                          // Subtitle
+                          Text(
+                            'Espaço restrito para cadastro de conteúdos\ne geração de QR Codes do território',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: themeProvider.textSecondaryColor,
+                              fontSize: 14,
+                              height: 1.5,
                             ),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
                           ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Text(
-                                  'Entrar',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                          const SizedBox(height: 32),
 
-                      // Forgot password (placeholder)
-                      TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Entre em contato com o administrador',
+                          // Username field
+                          TextFormField(
+                            controller: _usernameController,
+                            validator: Validators.validateLoginInput,
+                            decoration: InputDecoration(
+                              labelText: 'Usuário ou Email',
+                              labelStyle: TextStyle(
+                                color: themeProvider.textSecondaryColor,
                               ),
-                              backgroundColor: Color(AppConstants.primaryGreen),
+                              filled: true,
+                              fillColor: themeProvider.cardMediumColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(AppConstants.primaryGreen),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(AppConstants.deleteRed),
+                                  width: 2,
+                                ),
+                              ),
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Esqueci minha senha',
-                          style: TextStyle(
-                            color: Color(AppConstants.primaryGreen),
-                            fontSize: 14,
+                            style: TextStyle(color: themeProvider.textColor),
+                            keyboardType: TextInputType.emailAddress,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+
+                          // Password field
+                          TextFormField(
+                            controller: _passwordController,
+                            validator: Validators.validateSimplePassword,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: 'Senha',
+                              labelStyle: TextStyle(
+                                color: themeProvider.textSecondaryColor,
+                              ),
+                              filled: true,
+                              fillColor: themeProvider.cardMediumColor,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(AppConstants.primaryGreen),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(AppConstants.deleteRed),
+                                  width: 2,
+                                ),
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: themeProvider.textSecondaryColor,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            style: TextStyle(color: themeProvider.textColor),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Login button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(
+                                  AppConstants.primaryGreen,
+                                ),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Entrar',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Forgot password (placeholder)
+                          TextButton(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Entre em contato com o administrador',
+                                  ),
+                                  backgroundColor:
+                                      Color(AppConstants.primaryGreen),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Esqueci minha senha',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryGreen),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Default credentials info
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(
-                    AppConstants.primaryGreen,
-                  ).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(
-                      AppConstants.primaryGreen,
-                    ).withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
+                  // Default credentials info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(
+                        AppConstants.primaryGreen,
+                      ).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(
+                          AppConstants.primaryGreen,
+                        ).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
                       children: [
-                        const Icon(
-                          Icons.info_outline,
-                          color: Color(AppConstants.primaryGreen),
-                          size: 20,
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: Color(AppConstants.primaryGreen),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Credenciais Padrão',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryGreen),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Credenciais Padrão',
+                        const SizedBox(height: 8),
+                        Text(
+                          'Usuário: ${AppConstants.defaultAdminUsername}\nSenha: ${AppConstants.defaultAdminPassword}',
                           style: TextStyle(
-                            color: Color(AppConstants.primaryGreen),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            color: themeProvider.textSecondaryColor,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Usuário: ${AppConstants.defaultAdminUsername}\nSenha: ${AppConstants.defaultAdminPassword}',
-                      style: const TextStyle(
-                        color: Color(AppConstants.textGray),
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

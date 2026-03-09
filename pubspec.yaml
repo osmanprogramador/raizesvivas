@@ -1,5 +1,5 @@
-name: flutter_application_1
-description: "A new Flutter project."
+name: raizes_vivas
+description: "Ecossistema Digital Terra Vista - Raízes Vivas: Preservação de Memória e Agroecologia"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -63,6 +63,10 @@ dependencies:
   uuid: ^4.5.1
   crypto: ^3.0.6
   geolocator: ^13.0.2
+  firebase_core: ^4.3.0
+  firebase_auth: ^6.1.3
+  cloud_firestore: ^6.1.1
+  firebase_storage: ^13.0.6
 
 dev_dependencies:
   flutter_test:

@@ -23,6 +23,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     super.dispose();
   }
 
+  String? _lastScannedCode;
+  DateTime? _lastScanTime;
+
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
 
@@ -32,41 +35,64 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final String? code = barcodes.first.rawValue;
     if (code == null) return;
 
+    // Prevent spamming the same code if it was just scanned/errored recently
+    if (_lastScannedCode == code &&
+        _lastScanTime != null &&
+        DateTime.now().difference(_lastScanTime!) <
+            const Duration(seconds: 3)) {
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
+      _lastScannedCode = code;
+      _lastScanTime = DateTime.now();
     });
 
-    // Look up content by QR code
-    final contentProvider = context.read<ContentProvider>();
-    final historyProvider = context.read<HistoryProvider>();
+    try {
+      // Look up content by QR code
+      final contentProvider = context.read<ContentProvider>();
+      final historyProvider = context.read<HistoryProvider>();
 
-    final content = await contentProvider.getContentByQrCodeId(code);
+      final content = await contentProvider.getContentByQrCodeId(code);
 
-    if (content != null && mounted) {
-      // Add to history
-      await historyProvider.addScan(content.id, content.qrCodeId);
+      if (content != null && mounted) {
+        // Add to history (non-blocking)
+        historyProvider.addScan(content.id, content.qrCodeId);
 
-      // Check mounted again after async gap
-      if (!mounted) return;
+        // Navigate to content detail
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => ContentDetailScreen(content: content),
+            ),
+          );
+        }
+      } else if (mounted) {
+        // Show error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR Code não encontrado no sistema'),
+            backgroundColor: Color(AppConstants.deleteRed),
+            duration: Duration(seconds: 2),
+          ),
+        );
 
-      // Navigate to content detail
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ContentDetailScreen(content: content),
-        ),
-      );
-    } else if (mounted) {
-      // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('QR Code não encontrado no sistema'),
-          backgroundColor: Color(AppConstants.deleteRed),
-        ),
-      );
-
-      setState(() {
-        _isProcessing = false;
-      });
+        // Wait before allowing another scan to avoid infinite loop
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Scan error: $e');
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 

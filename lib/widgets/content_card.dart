@@ -99,95 +99,98 @@ class ContentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header with category and badges
-              Row(
-                children: [
-                  // Category icon and name
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getCategoryColor().withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: _getCategoryColor().withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getCategoryIcon(),
-                          size: 14,
-                          color: _getCategoryColor(),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          content.category,
-                          style: TextStyle(
-                            color: _getCategoryColor(),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Recent badge
-                  if (_isRecent())
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    // Category icon and name
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(
-                          AppConstants.primaryGreen,
-                        ).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
+                        color: _getCategoryColor().withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _getCategoryColor().withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.fiber_new,
-                            size: 12,
-                            color: const Color(AppConstants.primaryGreen),
+                            _getCategoryIcon(),
+                            size: 14,
+                            color: _getCategoryColor(),
                           ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'NOVO',
+                          const SizedBox(width: 6),
+                          Text(
+                            content.category,
                             style: TextStyle(
-                              color: Color(AppConstants.primaryGreen),
-                              fontSize: 9,
+                              color: _getCategoryColor(),
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                  // Location badge
-                  if (hasLocation) ...[
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: _getCategoryColor().withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
+
+                    // Recent badge
+                    if (_isRecent())
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            AppConstants.primaryGreen,
+                          ).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fiber_new,
+                              size: 12,
+                              color: const Color(AppConstants.primaryGreen),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'NOVO',
+                              style: TextStyle(
+                                color: Color(AppConstants.primaryGreen),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: _getCategoryColor(),
+
+                    // Location badge
+                    if (hasLocation) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor().withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.location_on,
+                          size: 12,
+                          color: _getCategoryColor(),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
               const SizedBox(height: 12),
 

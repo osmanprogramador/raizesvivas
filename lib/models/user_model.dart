@@ -1,7 +1,6 @@
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Enum para perfis de usuário
+/// Enum for user roles
 enum UserRole {
   superAdmin('super_admin', 'Super Administrador'),
   admin('admin', 'Administrador'),
@@ -21,14 +20,13 @@ enum UserRole {
   }
 }
 
-/// Modelo de usuário administrativo expandido
+/// Admin User Model adapted for Firestore
 class UserModel {
-  final String id;
-  final String username;
+  final String id; // This will be the Firebase Auth UID
+  final String username; // Email is used as username/identifier
   final String email;
   final String fullName;
   final String? phone;
-  final String passwordHash;
   final UserRole role;
   final bool isActive;
   final bool mustChangePassword;
@@ -44,7 +42,6 @@ class UserModel {
     required this.email,
     required this.fullName,
     this.phone,
-    required this.passwordHash,
     required this.role,
     this.isActive = true,
     this.mustChangePassword = false,
@@ -55,7 +52,7 @@ class UserModel {
     this.updatedBy,
   });
 
-  /// Convert to Map for database
+  /// Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -63,51 +60,44 @@ class UserModel {
       'email': email,
       'full_name': fullName,
       'phone': phone,
-      'password_hash': passwordHash,
       'role': role.value,
-      'is_active': isActive ? 1 : 0,
-      'must_change_password': mustChangePassword ? 1 : 0,
-      'last_login_at': lastLoginAt?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
+      'is_active': isActive, // Firestore stores booleans natively
+      'must_change_password': mustChangePassword,
+      'last_login_at':
+          lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'created_at': Timestamp.fromDate(createdAt),
       'created_by': createdBy,
-      'updated_at': updatedAt.toIso8601String(),
+      'updated_at': Timestamp.fromDate(updatedAt),
       'updated_by': updatedBy,
     };
   }
 
-  /// Create from Map
+  /// Create from Firestore Map
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    // Helper to safely get DateTime from Timestamp or String (legacy/migration safety)
+    DateTime toDateTime(dynamic val) {
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.parse(val);
+      return DateTime.now(); // Fallback
+    }
+
     return UserModel(
-      id: map['id'] as String,
-      username: map['username'] as String,
-      email: map['email'] as String,
-      fullName: map['full_name'] as String,
+      id: map['id'] as String? ?? '', // Safety fallback
+      username: map['username'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      fullName: map['full_name'] as String? ?? '',
       phone: map['phone'] as String?,
-      passwordHash: map['password_hash'] as String,
-      role: UserRole.fromString(map['role'] as String),
-      isActive: (map['is_active'] as int) == 1,
-      mustChangePassword: (map['must_change_password'] as int) == 1,
+      role: UserRole.fromString(map['role'] as String? ?? ''),
+      isActive: map['is_active'] == true,
+      mustChangePassword: map['must_change_password'] == true,
       lastLoginAt: map['last_login_at'] != null
-          ? DateTime.parse(map['last_login_at'] as String)
+          ? toDateTime(map['last_login_at'])
           : null,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: toDateTime(map['created_at']),
       createdBy: map['created_by'] as String?,
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      updatedAt: toDateTime(map['updated_at']),
       updatedBy: map['updated_by'] as String?,
     );
-  }
-
-  /// Hash password with salt
-  static String hashPassword(String password, [String? salt]) {
-    final saltValue = salt ?? 'terra_vista_salt_2026';
-    final bytes = utf8.encode(password + saltValue);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  /// Verify password
-  bool verifyPassword(String password) {
-    return hashPassword(password) == passwordHash;
   }
 
   /// Copy with method for updates
@@ -117,7 +107,6 @@ class UserModel {
     String? email,
     String? fullName,
     String? phone,
-    String? passwordHash,
     UserRole? role,
     bool? isActive,
     bool? mustChangePassword,
@@ -133,7 +122,6 @@ class UserModel {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
-      passwordHash: passwordHash ?? this.passwordHash,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
@@ -151,7 +139,7 @@ class UserModel {
   /// Check if user is super admin
   bool get isSuperAdmin => role == UserRole.superAdmin;
 
-  /// Check if user can manage other users
+  /// Check if user can manage users
   bool get canManageUsers =>
       role == UserRole.superAdmin || role == UserRole.admin;
 

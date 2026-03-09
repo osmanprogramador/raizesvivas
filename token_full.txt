@@ -1,0 +1,50 @@
+﻿2026-01-17T13:21:49.002732 [32mâ¯[0m
+2026-01-17T13:21:49.017924  [96mâ—‰[0m  [96mGoogle[0m
+2026-01-17T13:21:49.032875 
+
+2026-01-17T13:21:49.048296  
+2026-01-17T13:21:49.063692  â—¯  Microsoft
+2026-01-17T13:22:06.571674 8
+2026-01-17T13:22:06.572696 [J
+2026-01-17T13:22:06.588120 [?25h
+2026-01-17T13:22:06.602955 Choose an auth provider 
+2026-01-17T13:22:06.618817 [2m[96mGoogle[0m[22m
+2026-01-17T13:22:06.698315 The Shorebird CLI needs your authorization to manage apps, releases, and patches on your behalf.
+
+In a browser, visit this URL to log in:
+
+[1m[4m[96mhttps://accounts.google.com/o/oauth2/v2/auth?client_id=523302233293-eia5antm0tgvek240t46orctktiabrek.apps.googleusercontent.com&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A49178&scope=openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&code_challenge=3P7-pMPi4kSCuN2ricK-TqF8BYkXJiWekDl5Px-XOOw&code_challenge_method=S256&state=B84Sw9j0NoitAUztODNFlPhgyqvE6dqI[0m[24m[22m
+
+Waiting for your authorization...
+2026-01-17T13:24:21.080715 [HTTP] GET https://api.shorebird.dev/api/v1/users/me
+2026-01-17T13:24:21.316848 
+ðŸŽ‰ [92mSuccess! Use the following token to login on a CI server:[0m
+
+[96meyJyZWZyZXNoX3Rva2VuIjoiMS8vMGhLWDVlMnQxaHZrdUNnWUlBUkFBR0JFU053Ri1MOUlyRWg4WUtIWE9sU09TNnEwZG1zY25TRzdjTTNsZE9iN1A5b3phQXZuajhxQ1ZCWUNEalFFQ1Joc0NnTDdFR1pkVFFSOCIsImF1dGhfcHJvdmlkZXIiOiJnb29nbGUifQ==[0m
+
+Example:
+  
+[96mexport SHOREBIRD_TOKEN="$SHOREBIRD_TOKEN" && shorebird patch android[0m
+
+2026-01-17T13:24:21.322388 [Process.run] git symbolic-ref HEAD (in C:\Users\Osman\.shorebird\bin\cache)
+2026-01-17T13:24:21.428122 Exited with code 0
+2026-01-17T13:24:21.428122 
+stdout:
+refs/heads/stable
+
+2026-01-17T13:24:21.448511 [Process.run] git rev-parse --verify HEAD (in C:\Users\Osman\.shorebird\bin\cache)
+2026-01-17T13:24:21.565329 Exited with code 0
+2026-01-17T13:24:21.566849 
+stdout:
+30c3f3e73b9db8fbf8d9dd57724171d4194c4915
+
+2026-01-17T13:24:21.588663 [Process.run] git remote prune origin (in C:\Users\Osman\.shorebird\bin\cache)
+2026-01-17T13:24:22.192703 Exited with code 0
+2026-01-17T13:24:22.194742 [Process.run] git fetch --tags (in C:\Users\Osman\.shorebird\bin\cache)
+2026-01-17T13:24:22.795020 Exited with code 0
+2026-01-17T13:24:22.795543 [Process.run] git rev-parse --verify @{upstream} (in C:\Users\Osman\.shorebird\bin\cache)
+2026-01-17T13:24:22.909504 Exited with code 0
+2026-01-17T13:24:22.910505 
+stdout:
+30c3f3e73b9db8fbf8d9dd57724171d4194c4915
+
